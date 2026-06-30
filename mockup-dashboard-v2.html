@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup — Dashboard Magia de Terreiro v3</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+:root {
+  --bg: #F5F0E8; --surface: #FDFAF4; --border: #E0D5C3;
+  --terracota: #C4622D; --terracota-light: #F0D4C0;
+  --olive: #6B7C4E; --olive-light: #D6E0C4;
+  --sand: #D4B896; --text: #2C2416; --text-muted: #7A6A54;
+  --status-done: #6B7C4E; --status-done-bg: #D6E0C4;
+  --status-wip: #C4622D; --status-wip-bg: #F0D4C0;
+  --status-plan: #9A8C78; --status-plan-bg: #EDE8DF;
+}
+body { background: var(--bg); color: var(--text); font-size: 13px; }
+.layout { display: flex; height: 100vh; overflow: hidden; }
+
+.sidebar { width: 210px; flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px 0; }
+.logo { padding: 0 16px 20px; font-size: 14px; font-weight: 700; color: var(--terracota); border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+.logo span { display: block; font-size: 10px; font-weight: 400; color: var(--text-muted); margin-top: 2px; }
+.nav-item { padding: 9px 16px; cursor: pointer; color: var(--text-muted); font-size: 12.5px; display: flex; align-items: center; gap: 8px; border-left: 3px solid transparent; transition: background .15s; user-select: none; line-height: 1.35; }
+.nav-item:hover { background: var(--terracota-light); color: var(--terracota); }
+.nav-item.active { background: var(--terracota-light); color: var(--terracota); border-left-color: var(--terracota); font-weight: 600; }
+.nav-divider { font-size: 9px; text-transform: uppercase; letter-spacing: .8px; color: var(--sand); padding: 12px 16px 4px; }
+.sidebar-bottom { margin-top: auto; padding: 12px 16px; border-top: 1px solid var(--border); }
+.user-badge { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--text-muted); }
+.avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--terracota); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+
+.main { flex: 1; overflow: auto; }
+.topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+.topbar h1 { font-size: 15px; font-weight: 700; }
+.topbar-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.btn { padding: 7px 14px; border-radius: 6px; border: none; cursor: pointer; font-size: 12px; font-weight: 600; transition: opacity .15s; }
+.btn:hover { opacity: .85; }
+.btn-primary { background: var(--terracota); color: #fff; }
+.btn-secondary { background: var(--olive-light); color: var(--olive); }
+.btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text-muted); cursor: pointer; }
+.btn-sm { padding: 4px 10px; font-size: 11px; }
+.btn-danger { background: #FDDCD0; color: #A03010; border: none; cursor: pointer; padding: 4px 10px; font-size: 11px; font-weight: 600; border-radius: 6px; }
+
+.panel { display: none; padding: 20px 24px; }
+.panel.active { display: block; }
+
+/* Cards */
+.cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+.card-clickable { cursor: pointer; transition: border-color .15s, box-shadow .15s, transform .1s; }
+.card-clickable:hover { border-color: var(--terracota); box-shadow: 0 2px 10px rgba(196,98,45,.12); transform: translateY(-1px); }
+.card-clickable .hint { font-size: 10px; color: var(--terracota); margin-top: 6px; opacity: 0; transition: opacity .15s; }
+.card-clickable:hover .hint { opacity: 1; }
+.card-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+.card-value { font-size: 26px; font-weight: 700; }
+.card-sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+.section-title { font-size: 13px; font-weight: 700; margin-bottom: 12px; }
+
+/* Category grid */
+.cat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+.cat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: border-color .15s, box-shadow .15s, transform .1s; }
+.cat-card:hover { border-color: var(--terracota); box-shadow: 0 2px 8px rgba(196,98,45,.1); transform: translateY(-1px); }
+.cat-swatch { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.cat-name { font-size: 12.5px; font-weight: 600; flex: 1; }
+.cat-count { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+.cat-arrow { font-size: 11px; color: var(--terracota); opacity: 0; transition: opacity .15s; }
+.cat-card:hover .cat-arrow { opacity: 1; }
+
+/* Empty state */
+.empty-state { text-align: center; padding: 48px 24px; color: var(--text-muted); }
+.empty-state .icon { font-size: 32px; margin-bottom: 10px; opacity: .4; }
+.empty-state p { font-size: 13px; line-height: 1.6; }
+
+/* Table */
+.table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.table-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.filter-select { padding: 5px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 12px; background: var(--bg); color: var(--text); }
+table { width: 100%; border-collapse: collapse; }
+th { padding: 9px 14px; text-align: left; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .4px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 11px 14px; font-size: 12.5px; border-bottom: 1px solid var(--border); }
+tr:last-child td { border-bottom: none; }
+
+/* Badges */
+.badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+.badge-done { background: var(--status-done-bg); color: var(--status-done); }
+.badge-wip { background: var(--status-wip-bg); color: var(--status-wip); }
+.badge-plan { background: var(--status-plan-bg); color: var(--status-plan); }
+.badge-no-cat { background: #EEEBE5; color: #9A8C78; }
+.badge-cat { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+
+/* Modal */
+.modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 100; align-items: center; justify-content: center; }
+.modal-bg.open { display: flex; }
+.modal { background: var(--surface); border-radius: 12px; width: 480px; max-height: 85vh; overflow-y: auto; padding: 24px; box-shadow: 0 8px 32px rgba(0,0,0,.15); }
+.modal h2 { font-size: 15px; font-weight: 700; margin-bottom: 16px; }
+.field { margin-bottom: 14px; }
+.field label { display: block; font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: .4px; }
+.field input, .field select, .field textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; background: var(--bg); color: var(--text); }
+.field textarea { height: 80px; resize: vertical; }
+.internal-section { background: #FFF8F0; border: 1px dashed #DDB890; border-radius: 8px; padding: 12px; margin-top: 10px; }
+.internal-label { font-size: 10px; font-weight: 700; color: var(--terracota); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
+.toggle-row { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.toggle { width: 32px; height: 18px; background: var(--olive); border-radius: 9px; position: relative; cursor: pointer; flex-shrink: 0; }
+.toggle::after { content: ''; width: 14px; height: 14px; background: #fff; border-radius: 50%; position: absolute; top: 2px; right: 2px; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+.modal-acoes-list { max-height: 380px; overflow-y: auto; margin-top: 4px; }
+.modal-acao-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.modal-acao-item:last-child { border-bottom: none; }
+.modal-acao-titulo { font-size: 13px; font-weight: 600; flex: 1; line-height: 1.4; }
+.modal-acao-meta { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+
+/* Color picker */
+.color-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.color-chip { width: 26px; height: 26px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: transform .1s; }
+.color-chip:hover { transform: scale(1.2); }
+.color-chip.selected { border-color: #2C2416; box-shadow: 0 0 0 2px #fff inset; }
+
+/* Categories management */
+.cat-manage-list { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.cat-manage-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.cat-manage-item:last-child { border-bottom: none; }
+.cat-manage-item.archived { opacity: .45; }
+.cat-manage-swatch { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+.cat-manage-name { flex: 1; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.cat-manage-usage { font-size: 11px; color: var(--text-muted); margin-right: 4px; white-space: nowrap; }
+.archived-tag { font-size: 10px; background: #EDE8DF; color: #9A8C78; padding: 2px 6px; border-radius: 8px; font-weight: 600; }
+
+/* Calendar */
+.cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.cal-header h3 { font-size: 14px; font-weight: 700; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.cal-day-header { text-align: center; font-size: 10px; font-weight: 700; color: var(--text-muted); padding: 6px 0; text-transform: uppercase; }
+.cal-day { min-height: 72px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px; }
+.cal-day.other-month { opacity: .4; }
+.cal-day .day-num { font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; }
+.cal-day.today .day-num { color: var(--terracota); font-weight: 800; }
+.legend { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; }
+.legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+.cal-note { font-size: 11px; color: var(--text-muted); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; margin-bottom: 14px; line-height: 1.5; }
+
+/* Detail */
+.detail-grid { display: grid; grid-template-columns: 1fr 280px; gap: 16px; }
+.log-list { list-style: none; }
+.log-item { padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 12px; line-height: 1.5; }
+.log-item:last-child { border-bottom: none; }
+.log-who { font-weight: 600; }
+.log-when { color: var(--text-muted); font-size: 11px; }
+.comment-input { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 12.5px; background: var(--bg); resize: vertical; height: 60px; }
+
+/* Login */
+.login-screen { min-height: 100vh; background: var(--bg); display: flex; align-items: center; justify-content: center; }
+.login-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 36px 32px; width: 360px; box-shadow: 0 4px 20px rgba(0,0,0,.06); }
+.login-logo { text-align: center; margin-bottom: 24px; }
+.login-logo .name { font-size: 20px; font-weight: 800; color: var(--terracota); }
+.login-logo .sub { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+
+/* Relatório — só visível para coprodutora */
+.relatorio-bar { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+.relatorio-bar label { font-size: 12px; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
+.week-input { padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 12px; background: var(--bg); color: var(--text); }
+.relatorio-bar .spacer { flex: 1; }
+.role-switcher { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--text-muted); background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:6px 10px; margin-bottom:16px; }
+.role-switcher select { font-size:11px; border:none; background:transparent; color:var(--terracota); font-weight:700; cursor:pointer; }
+
+/* Toast */
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: #2C2416; color: #fff; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; opacity: 0; transition: opacity .25s, transform .25s; z-index: 999; pointer-events: none; white-space: nowrap; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<!-- Modal: Nova Ação -->
+<div class="modal-bg" id="modalAcao">
+  <div class="modal">
+    <h2>Nova Ação</h2>
+    <div class="field"><label>Título</label><input type="text" /></div>
+    <div class="field"><label>Descrição</label><textarea></textarea></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="field">
+        <label>Categoria</label>
+        <select>
+          <option value="">— sem categoria —</option>
+          <option>Copy</option><option>Tráfego</option><option>Conteúdo Insta</option>
+          <option>Criativos</option><option>CS/Atendimento</option><option>Lançamento</option>
+          <option>E-mail Marketing</option><option>Automação/Técnico</option>
+          <option>Estratégia/Diagnóstico</option><option>Comunidade</option>
+          <option>Parcerias/Influencers</option><option>Design/Branding</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Status</label>
+        <select><option>Planejada</option><option>Em andamento</option><option>Concluída</option></select>
+      </div>
+    </div>
+    <div class="field"><label>Data prevista</label><input type="date" /></div>
+    <div class="internal-section">
+      <div class="internal-label">🔒 Campos internos (só coprodutora vê)</div>
+      <div class="field" style="margin-bottom:10px"><label>Notas internas</label><textarea></textarea></div>
+      <div class="toggle-row"><div class="toggle"></div><span>Visível para a cliente (Iza)</span></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="document.getElementById('modalAcao').classList.remove('open')">Cancelar</button>
+      <button class="btn btn-primary">Criar ação</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Editar Categoria -->
+<div class="modal-bg" id="modalCat">
+  <div class="modal" style="width:360px">
+    <h2>Editar Categoria</h2>
+    <div class="field"><label>Nome</label><input type="text" /></div>
+    <div class="field">
+      <label>Cor do badge</label>
+      <div class="color-row">
+        <div class="color-chip selected" style="background:#C4622D"></div>
+        <div class="color-chip" style="background:#8B6B35"></div>
+        <div class="color-chip" style="background:#6B7C4E"></div>
+        <div class="color-chip" style="background:#A05C3B"></div>
+        <div class="color-chip" style="background:#5A7A8A"></div>
+        <div class="color-chip" style="background:#B5472A"></div>
+        <div class="color-chip" style="background:#7A6A54"></div>
+        <div class="color-chip" style="background:#4A6B5A"></div>
+        <div class="color-chip" style="background:#9A6B3A"></div>
+        <div class="color-chip" style="background:#6B8C5A"></div>
+        <div class="color-chip" style="background:#8A7A6A"></div>
+        <div class="color-chip" style="background:#C48B5A"></div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="document.getElementById('modalCat').classList.remove('open')">Cancelar</button>
+      <button class="btn btn-primary">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: lista de ações filtrada -->
+<div class="modal-bg" id="modalAcoesFiltro">
+  <div class="modal" style="width:560px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h2 id="modalAcoesTitulo" style="margin:0"></h2>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('modalAcoesFiltro').classList.remove('open')">✕ Fechar</button>
+    </div>
+    <div id="modalAcoesList" class="modal-acoes-list"></div>
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="btn btn-primary" onclick="irParaAcoes()">Ver todas na aba Ações →</button>
+    </div>
+  </div>
+</div>
+
+<!-- TELA DE LOGIN -->
+<div id="screenLogin">
+  <div class="login-screen">
+    <div class="login-card">
+      <div class="login-logo">
+        <div class="name">Magia de Terreiro</div>
+        <div class="sub">Dashboard de Coprodução</div>
+      </div>
+      <div class="field"><label>E-mail</label><input type="email" /></div>
+      <div class="field" style="margin-bottom:20px"><label>Senha</label><input type="password" /></div>
+      <button class="btn btn-primary" style="width:100%;padding:10px;font-size:13px;border-radius:8px" onclick="showMain()">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- TELA PRINCIPAL -->
+<div id="screenMain" style="display:none">
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="logo">Magia de Terreiro<span>Dashboard de Coprodução</span></div>
+      <nav>
+        <div class="nav-item active" onclick="showPanel('overview',this)">◈ Visão Geral</div>
+        <div class="nav-item" onclick="showPanel('acoes',this)">✦ Ações</div>
+        <div class="nav-item" onclick="showPanel('calAcoes',this)">◷ Calendário de Ações</div>
+        <div class="nav-item" onclick="showPanel('calExpert',this)">◈ Calendário do Expert</div>
+        <div class="nav-divider">Configurações</div>
+        <div class="nav-item" onclick="showPanel('categorias',this)">⊞ Categorias</div>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="user-badge">
+          <div class="avatar">AN</div>
+          <div><div style="font-weight:600;color:var(--text)">Ana</div><div style="font-size:10px">Coprodutora</div></div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+
+      <!-- VISÃO GERAL -->
+      <div id="panel-overview" class="panel active">
+        <div class="topbar">
+          <div><h1>Visão Geral</h1><div class="topbar-sub">Magia de Terreiro · Coprodução Ana &amp; Thaís</div></div>
+        </div>
+        <div style="padding:20px 24px">
+
+          <!-- Seletor de role — só para demonstração no mockup -->
+          <div class="role-switcher">
+            👤 Visualizando como:
+            <select id="roleSelector" onchange="aplicarRole(this.value)">
+              <option value="coprodutora">Coprodutora (Ana / Thaís)</option>
+              <option value="cliente">Cliente (Iza)</option>
+            </select>
+          </div>
+
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <div class="section-title" style="margin:0">Status das ações</div>
+            <span style="font-size:11px;color:var(--text-muted)">Clique para ver a lista</span>
+          </div>
+          <div class="cards">
+            <div class="card card-clickable" onclick="abrirModalStatus('planejada')">
+              <div class="card-label">Planejadas</div>
+              <div class="card-value" style="color:var(--status-plan)">0</div>
+              <div class="card-sub">aguardando início</div>
+              <div class="hint">Ver ações →</div>
+            </div>
+            <div class="card card-clickable" onclick="abrirModalStatus('em_andamento')">
+              <div class="card-label">Em Andamento</div>
+              <div class="card-value" style="color:var(--terracota)">0</div>
+              <div class="card-sub">em execução agora</div>
+              <div class="hint">Ver ações →</div>
+            </div>
+            <div class="card card-clickable" onclick="abrirModalStatus('concluida')">
+              <div class="card-label">Concluídas</div>
+              <div class="card-value" style="color:var(--olive)">0</div>
+              <div class="card-sub">entregues</div>
+              <div class="hint">Ver ações →</div>
+            </div>
+          </div>
+
+          <div class="relatorio-bar" id="relatorioBar">
+            <label>Relatório semanal</label>
+            <input type="week" class="week-input" id="semanaRelatorio" />
+            <div class="spacer"></div>
+            <button class="btn btn-secondary" onclick="gerarRelatorio()">📋 Gerar Relatório</button>
+          </div>
+
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <div class="section-title" style="margin:0">
+              Ações por categoria
+              <span style="font-size:10px;font-weight:400;color:var(--text-muted);margin-left:6px">planejadas e em andamento · clique para ver</span>
+            </div>
+          </div>
+          <!-- Sem ações cadastradas: empty state -->
+          <div class="cat-grid" id="catGrid">
+            <!-- preenchido pelo JS com base nas ações existentes -->
+          </div>
+          <div id="catGridEmpty" class="empty-state" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:20px">
+            <div class="icon">◫</div>
+            <p>Nenhuma ação em aberto por enquanto.<br>Crie ações na aba <strong>Ações</strong> para vê-las aqui.</p>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- AÇÕES -->
+      <div id="panel-acoes" class="panel">
+        <div class="topbar">
+          <div><h1>Ações</h1><div class="topbar-sub">0 ações cadastradas</div></div>
+          <button class="btn btn-primary" onclick="document.getElementById('modalAcao').classList.add('open')">+ Nova Ação</button>
+        </div>
+        <div style="padding:20px 24px">
+          <div class="table-wrap">
+            <div class="table-header">
+              <select class="filter-select">
+                <option value="">Todas as categorias</option>
+                <option>Copy</option><option>Tráfego</option><option>Conteúdo Insta</option>
+                <option>Criativos</option><option>CS/Atendimento</option><option>Lançamento</option>
+                <option>E-mail Marketing</option><option>Automação/Técnico</option>
+                <option>Estratégia/Diagnóstico</option><option>Comunidade</option>
+                <option>Parcerias/Influencers</option><option>Design/Branding</option>
+              </select>
+              <select class="filter-select">
+                <option value="">Todos os status</option>
+                <option value="planejada">Planejada</option>
+                <option value="em_andamento">Em andamento</option>
+                <option value="concluida">Concluída</option>
+              </select>
+            </div>
+            <div class="empty-state">
+              <div class="icon">✦</div>
+              <p>Nenhuma ação cadastrada ainda.<br>Clique em <strong>+ Nova Ação</strong> para começar.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DETALHE DA AÇÃO -->
+      <div id="panel-detalhe" class="panel">
+        <div class="topbar">
+          <div><h1>Detalhe da ação</h1></div>
+        </div>
+        <div style="padding:20px 24px">
+          <div class="detail-grid">
+            <div>
+              <div class="card" style="margin-bottom:14px">
+                <div class="card-label">Descrição</div>
+                <div class="empty-state" style="padding:24px 0 8px"><p>Selecione uma ação para ver os detalhes.</p></div>
+              </div>
+              <div class="card">
+                <div class="card-label" style="margin-bottom:10px">Histórico de atividade</div>
+                <div class="empty-state" style="padding:16px 0 4px"><p>Nenhuma atividade registrada.</p></div>
+              </div>
+            </div>
+            <div>
+              <div class="card">
+                <div class="card-label" style="margin-bottom:10px">Comentários</div>
+                <div class="empty-state" style="padding:16px 0 10px"><p>Nenhum comentário ainda.</p></div>
+                <textarea class="comment-input"></textarea>
+                <button class="btn btn-primary" style="margin-top:6px;width:100%">Comentar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CALENDÁRIO DE AÇÕES -->
+      <div id="panel-calAcoes" class="panel">
+        <div class="topbar">
+          <div><h1>Calendário de Ações</h1><div class="topbar-sub">Ações por data de execução prevista</div></div>
+          <div style="display:flex;gap:6px"><button class="btn btn-ghost">Semana</button><button class="btn btn-secondary">Mês</button></div>
+        </div>
+        <div style="padding:20px 24px">
+          <div class="cal-note">ℹ️ As cores refletem o <strong>status</strong> da ação. A categoria aparece como tooltip ao passar o mouse sobre o evento.</div>
+          <div class="legend">
+            <div class="legend-item"><div class="legend-dot" style="background:var(--status-done-bg);border:1.5px solid var(--status-done)"></div> Concluída</div>
+            <div class="legend-item"><div class="legend-dot" style="background:var(--status-wip-bg);border:1.5px solid var(--status-wip)"></div> Em andamento</div>
+            <div class="legend-item"><div class="legend-dot" style="background:var(--status-plan-bg);border:1.5px solid var(--status-plan)"></div> Planejada</div>
+          </div>
+          <div class="cal-header">
+            <h3 id="calAcoesMonthTitle"></h3>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-ghost" onclick="mudaMes('calAcoes',-1)">‹</button>
+              <button class="btn btn-ghost" onclick="mudaMes('calAcoes',1)">›</button>
+            </div>
+          </div>
+          <div class="cal-grid" id="calAcoesGrid">
+            <div class="cal-day-header">Dom</div><div class="cal-day-header">Seg</div><div class="cal-day-header">Ter</div>
+            <div class="cal-day-header">Qua</div><div class="cal-day-header">Qui</div><div class="cal-day-header">Sex</div><div class="cal-day-header">Sáb</div>
+          </div>
+          <!-- Dias são gerados pelo JS -->
+        </div>
+      </div>
+
+      <!-- CALENDÁRIO DO EXPERT -->
+      <div id="panel-calExpert" class="panel">
+        <div class="topbar">
+          <div><h1>Calendário do Expert</h1><div class="topbar-sub">Lançamentos, eventos ao vivo, criativos e aulas</div></div>
+          <button class="btn btn-primary">+ Novo Evento</button>
+        </div>
+        <div style="padding:20px 24px">
+          <div class="legend">
+            <div class="legend-item"><div class="legend-dot" style="background:#FDDCD0;border:1.5px solid #C4622D"></div> Lançamento</div>
+            <div class="legend-item"><div class="legend-dot" style="background:var(--olive-light);border:1.5px solid var(--olive)"></div> Evento ao vivo</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#F0E4CC;border:1.5px solid #8B6B35"></div> Subir criativo</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#D0E4EC;border:1.5px solid #5A7A8A"></div> Aula ao vivo</div>
+          </div>
+          <div class="cal-header">
+            <h3 id="calExpertMonthTitle"></h3>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-ghost" onclick="mudaMes('calExpert',-1)">‹</button>
+              <button class="btn btn-ghost" onclick="mudaMes('calExpert',1)">›</button>
+            </div>
+          </div>
+          <div class="cal-grid" id="calExpertGrid">
+            <div class="cal-day-header">Dom</div><div class="cal-day-header">Seg</div><div class="cal-day-header">Ter</div>
+            <div class="cal-day-header">Qua</div><div class="cal-day-header">Qui</div><div class="cal-day-header">Sex</div><div class="cal-day-header">Sáb</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GERENCIAR CATEGORIAS -->
+      <div id="panel-categorias" class="panel">
+        <div class="topbar">
+          <div><h1>Gerenciar Categorias</h1><div class="topbar-sub">Visível apenas para a coprodutora</div></div>
+          <button class="btn btn-primary">+ Nova Categoria</button>
+        </div>
+        <div style="padding:20px 24px">
+          <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px;line-height:1.5">Categorias arquivadas ficam ocultas no formulário de criação de ações, mas as ações existentes que as referenciam não são afetadas.</p>
+          <div class="cat-manage-list">
+            <div class="cat-manage-item"><div class="cat-manage-swatch" style="background:#C4622D"></div><div class="cat-manage-name">Copy</div><div class="cat-manage-usage"></div><button class="btn btn-ghost btn-sm" onclick="document.getElementById('modalCat').classList.add('open')">Editar</button><button class="btn btn-danger">Arquivar</button></div>
+            <div class="cat-manage-item"><div class="cat-manage-swatch" style="background:#8B6B35"></div><div class="cat-manage-name">Tráfego</div><div class="cat-manage-usage"></div><button class="btn btn-ghost btn-sm">Editar</button><button class="btn btn-danger">Arquivar</button></div>
+            <div class="cat-manage-item"><div class="cat-manage-swatch" style="background:#6B7C4E"></div><div class="cat-manage-name">Conteúdo Insta</div><div class="cat-manage-usage"></div><button class="btn btn-ghost btn-sm">Editar</button><button class="btn btn-danger">Arquivar</button></div>
+            <div class="cat-manage-item"><div class="cat-manage-swatch" style="background:#A05C3B"></div><div class="cat-manage-name">Criativos</div><div class="cat-manage-usage"></div><button class="btn btn-ghost btn-sm">Editar</button><button class="btn btn-danger">Arquivar</button></div>
+            <div class="cat-manage-item"><div class="cat-manage-swatch" style="background:#5A7A8A"></div><div class="cat-manage-name">CS/Atendimento</div><div class="cat-manage-usage"></div><button class="btn btn-ghost btn-sm">Editar</button><button class="btn btn-danger">Arquivar</button></div>
+            <div class="cat-manage-item"><div class="cat-manage-swatch" style="background:#B5472A"></div><div class="cat-manage-name">Lançamento</div><div class="cat-manage-usage"></div><button class="btn btn-ghost btn-sm">Editar</button><button class="btn btn-danger">Arquivar</button></div>
+            <div class="cat-manage-item"><div class="cat-manage-swatch" style="background:#7A6A54"></div><div class="cat-manage-name">E-mail Marketing</div><div class="cat-manage-usage"></div><button class="btn btn-ghost btn-sm">Editar</button><button class="btn btn-danger">Arquivar</button></div>
+            <div class="cat-manage-item"><div class="cat-manage-swatch" style="background:#4A6B5A"></div><div class="cat-manage-name">Automação/Técnico</div><div class="cat-manage-usage"></div><button class="btn btn-ghost btn-sm">Editar</button><button class="btn btn-danger">Arquivar</button></div>
+            <div class="cat-manage-item"><div class="cat-manage-swatch" style="background:#9A6B3A"></div><div class="cat-manage-name">Estratégia/Diagnóstico</div><div class="cat-manage-usage"></div><button class="btn btn-ghost btn-sm">Editar</button><button class="btn btn-danger">Arquivar</button></div>
+            <div class="cat-manage-item"><div class="cat-manage-swatch" style="background:#6B8C5A"></div><div class="cat-manage-name">Comunidade</div><div class="cat-manage-usage"></div><button class="btn btn-ghost btn-sm">Editar</button><button class="btn btn-danger">Arquivar</button></div>
+            <div class="cat-manage-item"><div class="cat-manage-swatch" style="background:#8A7A6A"></div><div class="cat-manage-name">Parcerias/Influencers</div><div class="cat-manage-usage"></div><button class="btn btn-ghost btn-sm">Editar</button><button class="btn btn-danger">Arquivar</button></div>
+            <div class="cat-manage-item"><div class="cat-manage-swatch" style="background:#C48B5A"></div><div class="cat-manage-name">Design/Branding</div><div class="cat-manage-usage"></div><button class="btn btn-ghost btn-sm">Editar</button><button class="btn btn-danger">Arquivar</button></div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script>
+// ── Navegação ──
+function showMain() {
+  document.getElementById('screenLogin').style.display = 'none';
+  document.getElementById('screenMain').style.display = 'block';
+  renderCal('calAcoes');
+  renderCal('calExpert');
+}
+function showPanel(id, el) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  if (el) {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    el.classList.add('active');
+  }
+}
+function irParaAcoes() {
+  document.getElementById('modalAcoesFiltro').classList.remove('open');
+  showPanel('acoes', null);
+  document.querySelectorAll('.nav-item').forEach(n => {
+    n.classList.toggle('active', n.textContent.trim().startsWith('✦'));
+  });
+}
+
+// ── Modal de lista de ações (sempre vazio nesta fase) ──
+function abrirModalStatus(status) {
+  const labels = { planejada: 'Planejadas', em_andamento: 'Em andamento', concluida: 'Concluídas' };
+  document.getElementById('modalAcoesTitulo').textContent = `Ações — ${labels[status]}`;
+  document.getElementById('modalAcoesList').innerHTML =
+    '<div style="text-align:center;padding:32px;color:var(--text-muted);font-size:13px">Nenhuma ação cadastrada ainda.</div>';
+  document.getElementById('modalAcoesFiltro').classList.add('open');
+}
+function abrirModalCategoria(cat) {
+  document.getElementById('modalAcoesTitulo').textContent = `Ações em aberto — ${cat}`;
+  document.getElementById('modalAcoesList').innerHTML =
+    '<div style="text-align:center;padding:32px;color:var(--text-muted);font-size:13px">Nenhuma ação em aberto nesta categoria.</div>';
+  document.getElementById('modalAcoesFiltro').classList.add('open');
+}
+
+// ── Relatório semanal ──
+const MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+(function initWeekInput() {
+  const today = new Date();
+  const y = today.getFullYear();
+  const startOfYear = new Date(y, 0, 4);
+  const weekNum = Math.ceil(((today - new Date(y, 0, 1)) / 86400000 + new Date(y, 0, 1).getDay() + 1) / 7);
+  document.getElementById('semanaRelatorio').value = `${y}-W${String(weekNum).padStart(2,'0')}`;
+})();
+
+function semanaParaDatas(weekValue) {
+  const [year, weekStr] = weekValue.split('-W');
+  const week = parseInt(weekStr);
+  const jan4 = new Date(parseInt(year), 0, 4);
+  const startW1 = new Date(jan4);
+  startW1.setDate(jan4.getDate() - (jan4.getDay() || 7) + 1);
+  const seg = new Date(startW1);
+  seg.setDate(startW1.getDate() + (week - 1) * 7);
+  const dom = new Date(seg);
+  dom.setDate(seg.getDate() + 6);
+  return { seg, dom };
+}
+function fmtData(d) { return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`; }
+
+function gerarRelatorio() {
+  const weekVal = document.getElementById('semanaRelatorio').value;
+  if (!weekVal) { alert('Selecione uma semana.'); return; }
+  const { seg, dom } = semanaParaDatas(weekVal);
+  const texto =
+`Relatório semanal — ${fmtData(seg)} a ${fmtData(dom)}
+
+Ações concluídas nesta semana:
+Nenhuma ação concluída nesta semana.
+
+Resumo geral:
+- Concluídas: 0
+- Em andamento: 0
+- Planejadas: 0`;
+
+  navigator.clipboard.writeText(texto).then(() => toast('✓ Texto copiado para o clipboard!'))
+    .catch(() => {
+      const ta = Object.assign(document.createElement('textarea'), { value: texto, style: 'position:fixed;opacity:0' });
+      document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+      toast('✓ Texto copiado para o clipboard!');
+    });
+}
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ── Calendários (grid de dias, sem eventos) ──
+const calState = { calAcoes: new Date(), calExpert: new Date() };
+const MESES_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const DIAS = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+function renderCal(id) {
+  const date = calState[id];
+  const y = date.getFullYear(), m = date.getMonth();
+  document.getElementById(id + 'MonthTitle').textContent = `${MESES_PT[m]} ${y}`;
+
+  const grid = document.getElementById(id + 'Grid');
+  // remove dias anteriores (mantém os 7 headers)
+  while (grid.children.length > 7) grid.removeChild(grid.lastChild);
+
+  const firstDay = new Date(y, m, 1).getDay();
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const daysInPrev = new Date(y, m, 0).getDate();
+  const today = new Date();
+
+  // dias do mês anterior
+  for (let i = firstDay - 1; i >= 0; i--) {
+    const d = document.createElement('div');
+    d.className = 'cal-day other-month';
+    d.innerHTML = `<div class="day-num">${daysInPrev - i}</div>`;
+    grid.appendChild(d);
+  }
+  // dias do mês atual
+  for (let i = 1; i <= daysInMonth; i++) {
+    const d = document.createElement('div');
+    const isToday = today.getFullYear() === y && today.getMonth() === m && today.getDate() === i;
+    d.className = 'cal-day' + (isToday ? ' today' : '');
+    d.innerHTML = `<div class="day-num">${i}</div>`;
+    grid.appendChild(d);
+  }
+  // completar última linha
+  const total = firstDay + daysInMonth;
+  const remaining = total % 7 === 0 ? 0 : 7 - (total % 7);
+  for (let i = 1; i <= remaining; i++) {
+    const d = document.createElement('div');
+    d.className = 'cal-day other-month';
+    d.innerHTML = `<div class="day-num">${i}</div>`;
+    grid.appendChild(d);
+  }
+}
+
+function mudaMes(id, delta) {
+  const d = calState[id];
+  calState[id] = new Date(d.getFullYear(), d.getMonth() + delta, 1);
+  renderCal(id);
+}
+
+// ── Role switcher (mockup only) ──
+function aplicarRole(role) {
+  const isCoprodutora = role === 'coprodutora';
+  document.getElementById('relatorioBar').style.display = isCoprodutora ? 'flex' : 'none';
+  const avatar = document.querySelector('.avatar');
+  const nomeEl = document.querySelector('.sidebar-bottom .user-badge div div:first-child');
+  const roleEl = document.querySelector('.sidebar-bottom .user-badge div div:last-child');
+  if (isCoprodutora) {
+    avatar.textContent = 'AN'; nomeEl.textContent = 'Ana'; roleEl.textContent = 'Coprodutora';
+  } else {
+    avatar.textContent = 'IZ'; nomeEl.textContent = 'Iza'; roleEl.textContent = 'Cliente';
+  }
+}
+
+// ── Color chips ──
+document.querySelectorAll('.color-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.color-chip').forEach(c => c.classList.remove('selected'));
+    chip.classList.add('selected');
+  });
+});
+</script>
+</body>
+</html>
