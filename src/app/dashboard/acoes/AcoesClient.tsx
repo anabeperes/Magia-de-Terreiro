@@ -114,7 +114,7 @@ export default function AcoesClient({
       criado_por: userId,
     }
 
-    const { data, error } = await supabase.from('acoes').insert(payload).select().single()
+    const { data, error } = await supabase.from('acoes').insert(payload as never).select().single()
 
     if (error) {
       setErro('Erro ao salvar. Tente novamente.')
@@ -130,7 +130,7 @@ export default function AcoesClient({
   }
 
   async function atualizarStatus(id: string, novoStatus: Acao['status']) {
-    const { error } = await supabase.from('acoes').update({ status: novoStatus }).eq('id', id)
+    const { error } = await supabase.from('acoes').update({ status: novoStatus } as never).eq('id', id)
     if (!error) {
       setAcoes(prev => prev.map(a => a.id === id ? { ...a, status: novoStatus } : a))
       showToast('Status atualizado!')

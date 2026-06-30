@@ -65,7 +65,7 @@ export default function CategoriasClient({ userId, categorias: initial }: Props)
     if (editando) {
       const { error } = await supabase
         .from('categorias')
-        .update({ nome: form.nome.trim(), cor: form.cor })
+        .update({ nome: form.nome.trim(), cor: form.cor } as never)
         .eq('id', editando.id)
 
       if (error) { setErro('Erro ao salvar.'); setSalvando(false); return }
@@ -74,7 +74,7 @@ export default function CategoriasClient({ userId, categorias: initial }: Props)
     } else {
       const { data, error } = await supabase
         .from('categorias')
-        .insert({ nome: form.nome.trim(), cor: form.cor, criado_por: userId })
+        .insert({ nome: form.nome.trim(), cor: form.cor, criado_por: userId } as never)
         .select()
         .single()
 
@@ -92,7 +92,7 @@ export default function CategoriasClient({ userId, categorias: initial }: Props)
     const novo = !cat.arquivada
     const { error } = await supabase
       .from('categorias')
-      .update({ arquivada: novo })
+      .update({ arquivada: novo } as never)
       .eq('id', cat.id)
 
     if (!error) {

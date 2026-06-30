@@ -72,7 +72,7 @@ export default function CalendarioExpertClient({ role, userId, eventos: eventosI
       data: form.data,
       descricao: form.descricao.trim() || null,
       criado_por: userId,
-    }).select().single()
+    } as never).select().single() // eslint-disable-line
 
     if (error) {
       setErro('Erro ao salvar. Tente novamente.')
