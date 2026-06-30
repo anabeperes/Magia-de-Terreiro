@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard de Vendas — Magia de Terreiro</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F5F0E8;--sf:#FEFCF9;--sf2:#EDE5D8;--sf3:#F9F4EC;
+  --t1:#1C130A;--t2:#5C4A34;--t3:#9C8470;
+  --ac:#8C5C14;--acl:#C4893A;--ach:#FBF0E0;
+  --bd:#D9CEBC;--bd2:#C5B8A4;
+  --ok:#4E7C3A;--er:#8B3A2C;
+  --rad:10px;
+}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t1);font-size:14px;line-height:1.6;min-height:100vh}
+
+/* HEADER */
+.hdr{background:var(--sf);border-bottom:1px solid var(--bd);padding:16px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;gap:16px}
+.hdr-left{display:flex;align-items:center;gap:10px}
+.hdr-dot{width:9px;height:9px;border-radius:50%;background:var(--acl);flex-shrink:0}
+.hdr-title{font-family:'Lora',Georgia,serif;font-size:17px;font-weight:600;color:var(--t1)}
+.hdr-sub{font-size:11px;color:var(--t3);margin-top:1px}
+.period-badge{background:var(--ac);color:#FFF8F0;font-size:11px;font-weight:500;padding:5px 14px;border-radius:100px;letter-spacing:0.3px;white-space:nowrap}
+
+/* LAYOUT */
+.wrap{max-width:1240px;margin:0 auto;padding:24px 24px;display:flex;flex-direction:column;gap:20px}
+
+/* FILTER BAR */
+.filter-bar{background:var(--sf);border:1px solid var(--bd);border-radius:var(--rad);padding:14px 18px;display:flex;flex-wrap:wrap;align-items:center;gap:16px}
+.filter-group{display:flex;align-items:center;gap:8px}
+.filter-lbl{font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:0.6px;white-space:nowrap}
+.pills{display:flex;gap:6px;flex-wrap:wrap}
+.pill{padding:5px 14px;border-radius:100px;font-size:12px;font-weight:500;border:1px solid var(--bd);background:transparent;color:var(--t2);cursor:pointer;transition:all .15s;white-space:nowrap}
+.pill:hover{border-color:var(--acl);color:var(--ac);background:var(--ach)}
+.pill.active{background:var(--ac);color:#FFF8F0;border-color:var(--ac)}
+.divider{width:1px;height:28px;background:var(--bd);flex-shrink:0}
+.prod-select{padding:6px 12px;border:1px solid var(--bd);border-radius:100px;font-size:12px;font-weight:500;color:var(--t2);background:var(--sf);cursor:pointer;font-family:inherit;outline:none;max-width:320px;transition:border-color .15s}
+.prod-select:hover,.prod-select:focus{border-color:var(--acl);color:var(--ac)}
+.prod-select.active{border-color:var(--ac);color:var(--ac);background:var(--ach)}
+.filter-reset{font-size:11px;color:var(--t3);cursor:pointer;text-decoration:underline;margin-left:auto;white-space:nowrap}
+.filter-reset:hover{color:var(--ac)}
+
+/* KPI CARDS */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.kpi{background:var(--sf);border:1px solid var(--bd);border-radius:var(--rad);padding:18px 20px;transition:border-color .2s}
+.kpi.filtered{border-color:var(--acl);background:var(--sf3)}
+.kpi-lbl{font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:7px}
+.kpi-val{font-size:24px;font-weight:600;color:var(--ac);letter-spacing:-0.5px;font-family:'Lora',Georgia,serif;line-height:1.1}
+.kpi-sub{font-size:11px;color:var(--t3);margin-top:5px}
+
+/* CARD */
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:var(--rad);padding:20px}
+.sec-title{font-family:'Lora',Georgia,serif;font-size:15px;font-weight:500;color:var(--t1);margin-bottom:14px}
+.two-col{display:grid;grid-template-columns:1.4fr 1fr;gap:16px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px;font-size:11px;color:var(--t2)}
+.li{display:flex;align-items:center;gap:5px}
+.ld{width:9px;height:9px;border-radius:2px;flex-shrink:0}
+
+/* MAIN TABLE */
+.tbl-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--bd)}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{background:var(--sf2);color:var(--t2);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;padding:9px 13px;text-align:right;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:1px solid var(--bd);transition:color .15s}
+th:first-child{text-align:left;min-width:200px;cursor:default}
+th.sorted{color:var(--ac)}
+th:not(:first-child):hover{color:var(--ac)}
+th.col-sel{background:var(--ach);color:var(--ac)}
+td{padding:8px 13px;text-align:right;color:var(--t2);border-bottom:1px solid #EDE8DE;font-variant-numeric:tabular-nums;white-space:nowrap}
+td:first-child{text-align:left;color:var(--t1);font-weight:500;max-width:230px;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--sf3)}
+tr.row-sel td{background:var(--ach)!important}
+tr.row-sel td:first-child{color:var(--ac)}
+td.col-sel{background:var(--ach);color:var(--ac);font-weight:600}
+td.zero{color:#C5B8A4}
+.tfoot td{font-weight:600;color:var(--t1);background:var(--sf2);border-top:1px solid var(--bd2);border-bottom:none}
+.tfoot td.col-sel{background:var(--ach);color:var(--ac)}
+
+/* PAY LEGEND */
+#payLegend{display:flex;flex-direction:column;gap:5px;margin-top:12px}
+#payLegend .li{justify-content:space-between}
+
+/* UPLOAD (last) */
+.upload-card{background:var(--sf);border:1.5px dashed var(--bd2);border-radius:var(--rad);padding:22px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;position:relative}
+.upload-card.drag{border-color:var(--ac);background:var(--sf3)}
+.upload-card input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-icon{font-size:24px;margin-bottom:5px}
+.upload-t{font-size:13px;font-weight:500;color:var(--t2);margin-bottom:3px}
+.upload-s{font-size:11px;color:var(--t3)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;justify-content:center}
+.chip{background:#F0E8D8;color:var(--ac);font-size:11px;font-weight:600;padding:4px 8px 4px 12px;border-radius:100px;display:flex;align-items:center;gap:5px;border:1px solid var(--bd)}
+.chip-pre{background:var(--sf2);color:var(--t3)}
+.chip-x{cursor:pointer;color:var(--t3);font-size:15px;line-height:1;background:none;border:none;padding:0;transition:color .15s}
+.chip-x:hover{color:var(--er)}
+.note{font-size:11px;color:var(--t3);margin-top:10px;font-style:italic}
+footer{text-align:center;font-size:11px;color:var(--t3);padding:20px;border-top:1px solid var(--bd)}
+
+@media(max-width:900px){.kpi-grid{grid-template-columns:1fr 1fr}.two-col{grid-template-columns:1fr}}
+@media(max-width:600px){.hdr{padding:12px 16px}.wrap{padding:16px}}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-left">
+    <div class="hdr-dot"></div>
+    <div>
+      <div class="hdr-title">Magia de Terreiro</div>
+      <div class="hdr-sub">Dashboard de Vendas · Hotmart</div>
+    </div>
+  </div>
+  <div class="period-badge" id="periodBadge">Jan – Jun 2026</div>
+</header>
+
+<div class="wrap">
+
+  <!-- FILTER BAR -->
+  <div class="filter-bar">
+    <div class="filter-group">
+      <span class="filter-lbl">Período</span>
+      <div class="pills" id="monthPills"></div>
+    </div>
+    <div class="divider"></div>
+    <div class="filter-group">
+      <span class="filter-lbl">Produto</span>
+      <select class="prod-select" id="prodSelect">
+        <option value="">Todos os produtos</option>
+      </select>
+    </div>
+    <span class="filter-reset" id="resetBtn" style="display:none" onclick="resetFilters()">Limpar filtros</span>
+  </div>
+
+  <!-- KPI CARDS -->
+  <div class="kpi-grid">
+    <div class="kpi" id="kpi0">
+      <div class="kpi-lbl">Faturamento Bruto</div>
+      <div class="kpi-val" id="kBruto">—</div>
+      <div class="kpi-sub" id="kBrutoSub"></div>
+    </div>
+    <div class="kpi" id="kpi1">
+      <div class="kpi-lbl">Faturamento Líquido</div>
+      <div class="kpi-val" id="kLiq">—</div>
+      <div class="kpi-sub" id="kLiqSub"></div>
+    </div>
+    <div class="kpi" id="kpi2">
+      <div class="kpi-lbl">Transações</div>
+      <div class="kpi-val" id="kTrans">—</div>
+      <div class="kpi-sub" id="kTransSub"></div>
+    </div>
+    <div class="kpi" id="kpi3">
+      <div class="kpi-lbl">Ticket Médio</div>
+      <div class="kpi-val" id="kTicket">—</div>
+      <div class="kpi-sub" id="kTicketSub"></div>
+    </div>
+  </div>
+
+  <!-- MAIN TABLE -->
+  <div class="card">
+    <div class="sec-title">Faturamento bruto por produto × mês</div>
+    <div class="tbl-wrap" id="tableWrap"></div>
+    <div class="note" id="tableNote"></div>
+  </div>
+
+  <!-- MENSAL + PAGAMENTO -->
+  <div class="two-col">
+    <div class="card">
+      <div class="sec-title" id="mensalTitle">Faturamento mensal</div>
+      <div class="legend">
+        <span class="li"><span class="ld" style="background:#8C5C14"></span>Bruto</span>
+        <span class="li"><span class="ld" style="background:#C4A882"></span>Líquido</span>
+      </div>
+      <div style="position:relative;width:100%;height:240px">
+        <canvas id="chartMensal" role="img" aria-label="Faturamento por mês"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="sec-title">Mix de pagamento</div>
+      <div style="position:relative;width:100%;height:180px">
+        <canvas id="chartPay" role="img" aria-label="Mix de pagamento"></canvas>
+      </div>
+      <div id="payLegend"></div>
+    </div>
+  </div>
+
+  <!-- TOP PRODUTOS -->
+  <div class="card">
+    <div class="sec-title">Top 10 produtos · faturamento total</div>
+    <div style="position:relative;width:100%;height:310px">
+      <canvas id="chartProd" role="img" aria-label="Top 10 produtos"></canvas>
+    </div>
+  </div>
+
+  <!-- ASSINATURA -->
+  <div class="card" id="subCard">
+    <div class="sec-title">Comunidade Magia de Terreiro — cobranças da assinatura</div>
+    <div class="legend">
+      <span class="li"><span class="ld" style="background:#A8722A"></span>1ª cobrança (novos)</span>
+      <span class="li"><span class="ld" style="background:#C4A030"></span>2ª cobrança</span>
+      <span class="li"><span class="ld" style="background:#6B8B4A"></span>3ª+ cobrança (retidos)</span>
+    </div>
+    <div style="position:relative;width:100%;height:200px">
+      <canvas id="chartSub" role="img" aria-label="Cobranças da assinatura por mês"></canvas>
+    </div>
+  </div>
+
+  <!-- UPLOAD (LAST) -->
+  <div class="upload-card" id="dropZone">
+    <input type="file" id="fileInput" accept=".csv" multiple>
+    <div class="upload-icon">📂</div>
+    <div class="upload-t">Adicionar novos meses</div>
+    <div class="upload-s">Arraste CSVs da Hotmart aqui · separador ponto-e-vírgula · UTF-8 · substitui o mês correspondente</div>
+    <div class="chips" id="chips"></div>
+  </div>
+
+</div>
+
+<footer>Gerado em <span id="genDate"></span> · Dados: Hotmart / Magia de Terreiro</footer>
+
+<script>
+// ─── HELPERS ────────────────────────────────────────────────────────────────
+const BR = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:0,maximumFractionDigits:0});
+const N2 = new Intl.NumberFormat('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const N0 = new Intl.NumberFormat('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});
+const MONTH_ORDER = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+const P = {
+  bruto:'#8C5C14',liq:'#C4A882',grid:'#E8E0CF',tick:'#B0A090',
+  series:['#8C5C14','#6B8B4A','#8B4A3C','#5C7A8B','#C4A030','#7A5C8B','#4A7A72','#8B7A3C','#3C6B5C','#C47B5A'],
+  pay:['#8C5C14','#6B8B4A','#5C7A8B','#8B4A3C','#B0A090'],
+  sub:['#A8722A','#C4A030','#6B8B4A']
+};
+
+// ─── SHORT NAMES ─────────────────────────────────────────────────────────────
+const SHORT = {
+  'TODOS OS EBOOKS DE EXU, POMBAGIRA E EXU MIRIM POR APENAS R$97':'Todos os ebooks (R$97)',
+  'Aprenda a jogar os 4 Búzios de Exu e Pombagira':'Aprenda a jogar os 4 Búzios',
+  'Comunidade Magia de Terreiro':'Comunidade Magia de Terreiro',
+  '21 Magias de Maria Padilha':'21 Magias de Maria Padilha',
+  '4 Búzios de Exu e Pombagira - A Comunicação Direta com a sua Entidade':'4 Búzios — Comunicação Direta',
+  '21 Mirongas de Pretos Velhos':'21 Mirongas de Pretos Velhos',
+  '21 tipos de Padê para Exu, Pombogira e Exu Mirim':'21 tipos de Padê',
+  '21 Magias de Pombagira':'21 Magias de Pombagira',
+  '4 Búzios de Exu e Pombagira Consagrados - Entregues na sua Casa':'4 Búzios Consagrados (físico)',
+  '21 Magias de Exu e Exu Mirim':'21 Magias de Exu e Exu Mirim',
+  '21 Magias da Malandragem':'21 Magias da Malandragem',
+  'Curso 4 Búzios de Exu e Pombagira: A Comunicação Direta com sua Entidade':'Curso 4 Búzios (gravado)',
+  '21 Elementos Poderosos para o Amor':'21 Elementos Poderosos para o Amor',
+  'Combo 5 eBooks Exu, Pombagira e Exu Mirim':'Combo 5 eBooks',
+  '21 ervas de Oxóssi':'21 ervas de Oxóssi',
+  'Exu é o Primeiro: Conhecendo o Guardião dos Caminhos.':'Exu é o Primeiro'
+};
+const sn = k => SHORT[k] || k;
+
+// ─── PRE-LOADED DATA ──────────────────────────────────────────────────────────
+const PRE = {
+Jan:{f:'jan_2026.csv',qtd:382,bruto:29574.38,liq:24279.89,
+  pb:{"21 Elementos Poderosos para o Amor":148,"21 Magias da Malandragem":0,"21 Magias de Exu e Exu Mirim":672,"21 Magias de Maria Padilha":1796.12,"21 Magias de Pombagira":988,"21 Mirongas de Pretos Velhos":0,"21 ervas de Oxóssi":0,"21 tipos de Padê para Exu, Pombogira e Exu Mirim":1324,"4 Búzios de Exu e Pombagira - A Comunicação Direta com a sua Entidade":2748.15,"4 Búzios de Exu e Pombagira Consagrados - Entregues na sua Casa":0,"Aprenda a jogar os 4 Búzios de Exu e Pombagira":21272.11,"Combo 5 eBooks Exu, Pombagira e Exu Mirim":135,"Comunidade Magia de Terreiro":0,"Curso 4 Búzios de Exu e Pombagira: A Comunicação Direta com sua Entidade":491,"Exu é o Primeiro: Conhecendo o Guardião dos Caminhos.":0,"TODOS OS EBOOKS DE EXU, POMBAGIRA E EXU MIRIM POR APENAS R$97":0},
+  pq:{"21 Elementos Poderosos para o Amor":4,"21 Magias da Malandragem":0,"21 Magias de Exu e Exu Mirim":16,"21 Magias de Maria Padilha":25,"21 Magias de Pombagira":24,"21 Mirongas de Pretos Velhos":0,"21 ervas de Oxóssi":0,"21 tipos de Padê para Exu, Pombogira e Exu Mirim":32,"4 Búzios de Exu e Pombagira - A Comunicação Direta com a sua Entidade":7,"4 Búzios de Exu e Pombagira Consagrados - Entregues na sua Casa":0,"Aprenda a jogar os 4 Búzios de Exu e Pombagira":270,"Combo 5 eBooks Exu, Pombagira e Exu Mirim":1,"Comunidade Magia de Terreiro":0,"Curso 4 Búzios de Exu e Pombagira: A Comunicação Direta com sua Entidade":3,"Exu é o Primeiro: Conhecendo o Guardião dos Caminhos.":0,"TODOS OS EBOOKS DE EXU, POMBAGIRA E EXU MIRIM POR APENAS R$97":0},
+  pl:{"21 Elementos Poderosos para o Amor":122.3,"21 Magias da Malandragem":0,"21 Magias de Exu e Exu Mirim":560.92,"21 Magias de Maria Padilha":1212.08,"21 Magias de Pombagira":825.86,"21 Mirongas de Pretos Velhos":0,"21 ervas de Oxóssi":0,"21 tipos de Padê para Exu, Pombogira e Exu Mirim":1131.02,"4 Búzios de Exu e Pombagira - A Comunicação Direta com a sua Entidade":2110.81,"4 Búzios de Exu e Pombagira Consagrados - Entregues na sua Casa":0,"Aprenda a jogar os 4 Búzios de Exu e Pombagira":17842.11,"Combo 5 eBooks Exu, Pombagira e Exu Mirim":107.76,"Comunidade Magia de Terreiro":0,"Curso 4 Búzios de Exu e Pombagira: A Comunicação Direta com sua Entidade":367.03,"Exu é o Primeiro: Conhecendo o Guardião dos Caminhos.":0,"TODOS OS EBOOKS DE EXU, POMBAGIRA E EXU MIRIM POR APENAS R$97":0},
+  pagb:{"Pix":19312,"Cartão de Crédito":10031.34,"PIX Automático":0,"Boleto Bancário":77,"Outros":154.04},
+  assin:{"1ª":0,"2ª":0,"3ª+":0}},
+Fev:{f:'fev_2026.csv',qtd:103,bruto:9067.55,liq:7577.87,
+  pb:{"21 Elementos Poderosos para o Amor":74,"21 Magias da Malandragem":0,"21 Magias de Exu e Exu Mirim":188,"21 Magias de Maria Padilha":628.08,"21 Magias de Pombagira":225,"21 Mirongas de Pretos Velhos":0,"21 ervas de Oxóssi":0,"21 tipos de Padê para Exu, Pombogira e Exu Mirim":436,"4 Búzios de Exu e Pombagira - A Comunicação Direta com a sua Entidade":1987.8,"4 Búzios de Exu e Pombagira Consagrados - Entregues na sua Casa":0,"Aprenda a jogar os 4 Búzios de Exu e Pombagira":5528.67,"Combo 5 eBooks Exu, Pombagira e Exu Mirim":0,"Comunidade Magia de Terreiro":0,"Curso 4 Búzios de Exu e Pombagira: A Comunicação Direta com sua Entidade":0,"Exu é o Primeiro: Conhecendo o Guardião dos Caminhos.":0,"TODOS OS EBOOKS DE EXU, POMBAGIRA E EXU MIRIM POR APENAS R$97":0},
+  pq:{"21 Elementos Poderosos para o Amor":2,"21 Magias da Malandragem":0,"21 Magias de Exu e Exu Mirim":4,"21 Magias de Maria Padilha":6,"21 Magias de Pombagira":5,"21 Mirongas de Pretos Velhos":0,"21 ervas de Oxóssi":0,"21 tipos de Padê para Exu, Pombogira e Exu Mirim":8,"4 Búzios de Exu e Pombagira - A Comunicação Direta com a sua Entidade":6,"4 Búzios de Exu e Pombagira Consagrados - Entregues na sua Casa":0,"Aprenda a jogar os 4 Búzios de Exu e Pombagira":72,"Combo 5 eBooks Exu, Pombagira e Exu Mirim":0,"Comunidade Magia de Terreiro":0,"Curso 4 Búzios de Exu e Pombagira: A Comunicação Direta com sua Entidade":0,"Exu é o Primeiro: Conhecendo o Guardião dos Caminhos.":0,"TODOS OS EBOOKS DE EXU, POMBAGIRA E EXU MIRIM POR APENAS R$97":0},
+  pl:{"21 Elementos Poderosos para o Amor":64.68,"21 Magias da Malandragem":0,"21 Magias de Exu e Exu Mirim":162.58,"21 Magias de Maria Padilha":479.04,"21 Magias de Pombagira":187.86,"21 Mirongas de Pretos Velhos":0,"21 ervas de Oxóssi":0,"21 tipos de Padê para Exu, Pombogira e Exu Mirim":380.06,"4 Búzios de Exu e Pombagira - A Comunicação Direta com a sua Entidade":1538.01,"4 Búzios de Exu e Pombagira Consagrados - Entregues na sua Casa":0,"Aprenda a jogar os 4 Búzios de Exu e Pombagira":4765.64,"Combo 5 eBooks Exu, Pombagira e Exu Mirim":0,"Comunidade Magia de Terreiro":0,"Curso 4 Búzios de Exu e Pombagira: A Comunicação Direta com sua Entidade":0,"Exu é o Primeiro: Conhecendo o Guardião dos Caminhos.":0,"TODOS OS EBOOKS DE EXU, POMBAGIRA E EXU MIRIM POR APENAS R$97":0},
+  pagb:{"Pix":5332,"Cartão de Crédito":3581.54,"PIX Automático":0,"Boleto Bancário":0,"Outros":154.01},
+  assin:{"1ª":0,"2ª":0,"3ª+":0}},
+Mar:{f:'mar_2026.csv',qtd:149,bruto:12987.54,liq:11236.55,
+  pb:{"21 Elementos Poderosos para o Amor":111,"21 Magias da Malandragem":12.72,"21 Magias de Exu e Exu Mirim":74,"21 Magias de Maria Padilha":161.6,"21 Magias de Pombagira":259,"21 Mirongas de Pretos Velhos":12.72,"21 ervas de Oxóssi":0,"21 tipos de Padê para Exu, Pombogira e Exu Mirim":168,"4 Búzios de Exu e Pombagira - A Comunicação Direta com a sua Entidade":345.1,"4 Búzios de Exu e Pombagira Consagrados - Entregues na sua Casa":465.1,"Aprenda a jogar os 4 Búzios de Exu e Pombagira":231,"Combo 5 eBooks Exu, Pombagira e Exu Mirim":135,"Comunidade Magia de Terreiro":0,"Curso 4 Búzios de Exu e Pombagira: A Comunicação Direta com sua Entidade":0,"Exu é o Primeiro: Conhecendo o Guardião dos Caminhos.":9.54,"TODOS OS EBOOKS DE EXU, POMBAGIRA E EXU MIRIM POR APENAS R$97":11002.76},
+  pq:{"21 Elementos Poderosos para o Amor":3,"21 Magias da Malandragem":1,"21 Magias de Exu e Exu Mirim":2,"21 Magias de Maria Padilha":4,"21 Magias de Pombagira":7,"21 Mirongas de Pretos Velhos":1,"21 ervas de Oxóssi":0,"21 tipos de Padê para Exu, Pombogira e Exu Mirim":4,"4 Búzios de Exu e Pombagira - A Comunicação Direta com a sua Entidade":1,"4 Búzios de Exu e Pombagira Consagrados - Entregues na sua Casa":2,"Aprenda a jogar os 4 Búzios de Exu e Pombagira":3,"Combo 5 eBooks Exu, Pombagira e Exu Mirim":1,"Comunidade Magia de Terreiro":0,"Curso 4 Búzios de Exu e Pombagira: A Comunicação Direta com sua Entidade":0,"Exu é o Primeiro: Conhecendo o Guardião dos Caminhos.":1,"TODOS OS EBOOKS DE EXU, POMBAGIRA E EXU MIRIM POR APENAS R$97":119},
+  pl:{"21 Elementos Poderosos para o Amor":97.02,"21 Magias da Malandragem":11.35,"21 Magias de Exu e Exu Mirim":61.15,"21 Magias de Maria Padilha":142.53,"21 Magias de Pombagira":226.38,"21 Mirongas de Pretos Velhos":11.35,"21 ervas de Oxóssi":0,"21 tipos de Padê para Exu, Pombogira e Exu Mirim":147.38,"4 Búzios de Exu e Pombagira - A Comunicação Direta com a sua Entidade":248.1,"4 Búzios de Exu e Pombagira Consagrados - Entregues na sua Casa":376.69,"Aprenda a jogar os 4 Búzios de Exu e Pombagira":205.14,"Combo 5 eBooks Exu, Pombagira e Exu Mirim":120.63,"Comunidade Magia de Terreiro":0,"Curso 4 Búzios de Exu e Pombagira: A Comunicação Direta com sua Entidade":0,"Exu é o Primeiro: Conhecendo o Guardião dos Caminhos.":7.61,"TODOS OS EBOOKS DE EXU, POMBAGIRA E EXU MIRIM POR APENAS R$97":9581.22},
+  pagb:{"Pix":9169,"Cartão de Crédito":3215.14,"PIX Automático":0,"Boleto Bancário":97,"Outros":506.4},
+  assin:{"1ª":0,"2ª":0,"3ª+":0}},
+Abr:{f:'abr_2026.csv',qtd:458,bruto:11986.21,liq:9199.15,
+  pb:{"21 Elementos Poderosos para o Amor":74,"21 Magias da Malandragem":391.84,"21 Magias de Exu e Exu Mirim":148,"21 Magias de Maria Padilha":74,"21 Magias de Pombagira":155.42,"21 Mirongas de Pretos Velhos":354.84,"21 ervas de Oxóssi":35,"21 tipos de Padê para Exu, Pombogira e Exu Mirim":74,"4 Búzios de Exu e Pombagira - A Comunicação Direta com a sua Entidade":673.3,"4 Búzios de Exu e Pombagira Consagrados - Entregues na sua Casa":922.8,"Aprenda a jogar os 4 Búzios de Exu e Pombagira":0,"Combo 5 eBooks Exu, Pombagira e Exu Mirim":0,"Comunidade Magia de Terreiro":6410.12,"Curso 4 Búzios de Exu e Pombagira: A Comunicação Direta com sua Entidade":100.98,"Exu é o Primeiro: Conhecendo o Guardião dos Caminhos.":0,"TODOS OS EBOOKS DE EXU, POMBAGIRA E EXU MIRIM POR APENAS R$97":2571.91},
+  pq:{"21 Elementos Poderosos para o Amor":2,"21 Magias da Malandragem":8,"21 Magias de Exu e Exu Mirim":4,"21 Magias de Maria Padilha":2,"21 Magias de Pombagira":5,"21 Mirongas de Pretos Velhos":7,"21 ervas de Oxóssi":5,"21 tipos de Padê para Exu, Pombogira e Exu Mirim":2,"4 Búzios de Exu e Pombagira - A Comunicação Direta com a sua Entidade":2,"4 Búzios de Exu e Pombagira Consagrados - Entregues na sua Casa":4,"Aprenda a jogar os 4 Búzios de Exu e Pombagira":0,"Combo 5 eBooks Exu, Pombagira e Exu Mirim":0,"Comunidade Magia de Terreiro":388,"Curso 4 Búzios de Exu e Pombagira: A Comunicação Direta com sua Entidade":1,"Exu é o Primeiro: Conhecendo o Guardião dos Caminhos.":0,"TODOS OS EBOOKS DE EXU, POMBAGIRA E EXU MIRIM POR APENAS R$97":28},
+  pl:{"21 Elementos Poderosos para o Amor":61.15,"21 Magias da Malandragem":332.1,"21 Magias de Exu e Exu Mirim":122.3,"21 Magias de Maria Padilha":61.15,"21 Magias de Pombagira":128.83,"21 Mirongas de Pretos Velhos":299.5,"21 ervas de Oxóssi":28,"21 tipos de Padê para Exu, Pombogira e Exu Mirim":64.68,"4 Búzios de Exu e Pombagira - A Comunicação Direta com a sua Entidade":483.77,"4 Búzios de Exu e Pombagira Consagrados - Entregues na sua Casa":781.96,"Aprenda a jogar os 4 Búzios de Exu e Pombagira":0,"Combo 5 eBooks Exu, Pombagira e Exu Mirim":0,"Comunidade Magia de Terreiro":4527.01,"Curso 4 Búzios de Exu e Pombagira: A Comunicação Direta com sua Entidade":87.49,"Exu é o Primeiro: Conhecendo o Guardião dos Caminhos.":0,"TODOS OS EBOOKS DE EXU, POMBAGIRA E EXU MIRIM POR APENAS R$97":2221.21},
+  pagb:{"Pix":3829.98,"Cartão de Crédito":3457.03,"PIX Automático":4352,"Boleto Bancário":170,"Outros":177.2},
+  assin:{"1ª":338,"2ª":50,"3ª+":0}},
+Mai:{f:'mai_2026.csv',qtd:507,bruto:18129,liq:15289.1,
+  pb:{"21 Elementos Poderosos para o Amor":74,"21 Magias da Malandragem":238,"21 Magias de Exu e Exu Mirim":444.02,"21 Magias de Maria Padilha":2371.02,"21 Magias de Pombagira":481,"21 Mirongas de Pretos Velhos":3102.84,"21 ervas de Oxóssi":21,"21 tipos de Padê para Exu, Pombogira e Exu Mirim":518,"4 Búzios de Exu e Pombagira - A Comunicação Direta com a sua Entidade":324,"4 Búzios de Exu e Pombagira Consagrados - Entregues na sua Casa":263.1,"Aprenda a jogar os 4 Búzios de Exu e Pombagira":97,"Combo 5 eBooks Exu, Pombagira e Exu Mirim":0,"Comunidade Magia de Terreiro":5182.42,"Curso 4 Búzios de Exu e Pombagira: A Comunicação Direta com sua Entidade":0,"Exu é o Primeiro: Conhecendo o Guardião dos Caminhos.":0,"TODOS OS EBOOKS DE EXU, POMBAGIRA E EXU MIRIM POR APENAS R$97":5012.6},
+  pq:{"21 Elementos Poderosos para o Amor":2,"21 Magias da Malandragem":8,"21 Magias de Exu e Exu Mirim":12,"21 Magias de Maria Padilha":43,"21 Magias de Pombagira":13,"21 Mirongas de Pretos Velhos":88,"21 ervas de Oxóssi":3,"21 tipos de Padê para Exu, Pombogira e Exu Mirim":14,"4 Búzios de Exu e Pombagira - A Comunicação Direta com a sua Entidade":1,"4 Búzios de Exu e Pombagira Consagrados - Entregues na sua Casa":1,"Aprenda a jogar os 4 Búzios de Exu e Pombagira":1,"Combo 5 eBooks Exu, Pombagira e Exu Mirim":0,"Comunidade Magia de Terreiro":268,"Curso 4 Búzios de Exu e Pombagira: A Comunicação Direta com sua Entidade":0,"Exu é o Primeiro: Conhecendo o Guardião dos Caminhos.":0,"TODOS OS EBOOKS DE EXU, POMBAGIRA E EXU MIRIM POR APENAS R$97":53},
+  pl:{"21 Elementos Poderosos para o Amor":64.68,"21 Magias da Malandragem":208.64,"21 Magias de Exu e Exu Mirim":384.41,"21 Magias de Maria Padilha":2063.9,"21 Magias de Pombagira":413.78,"21 Mirongas de Pretos Velhos":2684.24,"21 ervas de Oxóssi":16.58,"21 tipos de Padê para Exu, Pombogira e Exu Mirim":446.67,"4 Búzios de Exu e Pombagira - A Comunicação Direta com a sua Entidade":250.32,"4 Búzios de Exu e Pombagira Consagrados - Entregues na sua Casa":192.72,"Aprenda a jogar os 4 Búzios de Exu e Pombagira":86.4,"Combo 5 eBooks Exu, Pombagira e Exu Mirim":0,"Comunidade Magia de Terreiro":4174.8,"Curso 4 Búzios de Exu e Pombagira: A Comunicação Direta com sua Entidade":0,"Exu é o Primeiro: Conhecendo o Guardião dos Caminhos.":0,"TODOS OS EBOOKS DE EXU, POMBAGIRA E EXU MIRIM POR APENAS R$97":4301.96},
+  pagb:{"Pix":9978,"Cartão de Crédito":5292.88,"PIX Automático":2465,"Boleto Bancário":303,"Outros":90.12},
+  assin:{"1ª":31,"2ª":194,"3ª+":43}},
+Jun:{f:'jun_2026.csv',qtd:383,bruto:19435.42,liq:16364.8,
+  pb:{"21 Elementos Poderosos para o Amor":37,"21 Magias da Malandragem":316,"21 Magias de Exu e Exu Mirim":185,"21 Magias de Maria Padilha":2394,"21 Magias de Pombagira":222,"21 Mirongas de Pretos Velhos":464,"21 ervas de Oxóssi":7,"21 tipos de Padê para Exu, Pombogira e Exu Mirim":451.42,"4 Búzios de Exu e Pombagira - A Comunicação Direta com a sua Entidade":1044.2,"4 Búzios de Exu e Pombagira Consagrados - Entregues na sua Casa":225.8,"Aprenda a jogar os 4 Búzios de Exu e Pombagira":154,"Combo 5 eBooks Exu, Pombagira e Exu Mirim":0,"Comunidade Magia de Terreiro":4574.46,"Curso 4 Búzios de Exu e Pombagira: A Comunicação Direta com sua Entidade":291,"Exu é o Primeiro: Conhecendo o Guardião dos Caminhos.":0,"TODOS OS EBOOKS DE EXU, POMBAGIRA E EXU MIRIM POR APENAS R$97":9069.54},
+  pq:{"21 Elementos Poderosos para o Amor":1,"21 Magias da Malandragem":8,"21 Magias de Exu e Exu Mirim":5,"21 Magias de Maria Padilha":42,"21 Magias de Pombagira":6,"21 Mirongas de Pretos Velhos":12,"21 ervas de Oxóssi":1,"21 tipos de Padê para Exu, Pombogira e Exu Mirim":13,"4 Búzios de Exu e Pombagira - A Comunicação Direta com a sua Entidade":3,"4 Búzios de Exu e Pombagira Consagrados - Entregues na sua Casa":1,"Aprenda a jogar os 4 Búzios de Exu e Pombagira":2,"Combo 5 eBooks Exu, Pombagira e Exu Mirim":0,"Comunidade Magia de Terreiro":192,"Curso 4 Búzios de Exu e Pombagira: A Comunicação Direta com sua Entidade":3,"Exu é o Primeiro: Conhecendo o Guardião dos Caminhos.":0,"TODOS OS EBOOKS DE EXU, POMBAGIRA E EXU MIRIM POR APENAS R$97":94},
+  pl:{"21 Elementos Poderosos para o Amor":32.34,"21 Magias da Malandragem":271.38,"21 Magias de Exu e Exu Mirim":154.64,"21 Magias de Maria Padilha":2078.32,"21 Magias de Pombagira":185.15,"21 Mirongas de Pretos Velhos":397.21,"21 ervas de Oxóssi":5.6,"21 tipos de Padê para Exu, Pombogira e Exu Mirim":387.48,"4 Búzios de Exu e Pombagira - A Comunicação Direta com a sua Entidade":768.63,"4 Búzios de Exu e Pombagira Consagrados - Entregues na sua Casa":165.25,"Aprenda a jogar os 4 Búzios de Exu e Pombagira":124.08,"Combo 5 eBooks Exu, Pombagira e Exu Mirim":0,"Comunidade Magia de Terreiro":3750.34,"Curso 4 Búzios de Exu e Pombagira: A Comunicação Direta com sua Entidade":242.48,"Exu é o Primeiro: Conhecendo o Guardião dos Caminhos.":0,"TODOS OS EBOOKS DE EXU, POMBAGIRA E EXU MIRIM POR APENAS R$97":7801.9},
+  pagb:{"Pix":10083,"Cartão de Crédito":7595.68,"PIX Automático":1509,"Boleto Bancário":202,"Outros":45.74},
+  assin:{"1ª":20,"2ª":23,"3ª+":149}}
+};
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let ST = {};
+let fMonth = null, fProd = null;
+let sortCol = 'total', sortAsc = false;
+let charts = {};
+
+function initST() { ST = JSON.parse(JSON.stringify(PRE)); }
+
+function months() {
+  return Object.keys(ST).sort((a,b)=>MONTH_ORDER.indexOf(a)-MONTH_ORDER.indexOf(b));
+}
+function activeMths() { return fMonth ? [fMonth] : months(); }
+
+// ─── AGGREGATIONS ─────────────────────────────────────────────────────────────
+function computeKpis() {
+  const ms = activeMths();
+  let bruto=0,liq=0,qtd=0;
+  ms.forEach(m=>{
+    const d=ST[m]; if(!d) return;
+    if(fProd){
+      bruto += d.pb[fProd]||0;
+      liq   += d.pl[fProd]||0;
+      qtd   += d.pq[fProd]||0;
+    } else {
+      bruto += d.bruto; liq += d.liq; qtd += d.qtd;
+    }
+  });
+  return {bruto,liq,qtd,ticket:qtd?bruto/qtd:0,ms:ms.length};
+}
+
+function allProducts() {
+  const s=new Set();
+  Object.values(ST).forEach(d=>Object.keys(d.pb).forEach(p=>s.add(p)));
+  return [...s];
+}
+
+function prodRows() {
+  const ms = activeMths();
+  const map={};
+  ms.forEach(m=>{
+    const d=ST[m]; if(!d) return;
+    Object.entries(d.pb).forEach(([p,v])=>{
+      if(!map[p]) map[p]={total:0};
+      map[p][m]=(map[p][m]||0)+v;
+      map[p].total+=v;
+    });
+  });
+  return Object.entries(map).sort((a,b)=>b[1].total-a[1].total);
+}
+
+function payTotals() {
+  const ms=activeMths(),agg={};
+  ms.forEach(m=>{const d=ST[m];if(!d)return;Object.entries(d.pagb).forEach(([k,v])=>{agg[k]=(agg[k]||0)+v;});});
+  return Object.entries(agg).sort((a,b)=>b[1]-a[1]);
+}
+
+// ─── RENDER KPIs ─────────────────────────────────────────────────────────────
+function renderKpis() {
+  const {bruto,liq,qtd,ticket,ms}=computeKpis();
+  const taxa = bruto?liq/bruto*100:0;
+  const allMs=months().length;
+  const filtered = fMonth||fProd;
+  ['kpi0','kpi1','kpi2','kpi3'].forEach(id=>document.getElementById(id).classList.toggle('filtered',!!filtered));
+
+  document.getElementById('kBruto').textContent=BR.format(bruto);
+  document.getElementById('kBrutoSub').textContent= fMonth ? `${ms} mês · ${N0.format(qtd)} transações` : `${ms} meses · ${N0.format(qtd)} transações`;
+  document.getElementById('kLiq').textContent=BR.format(liq);
+  document.getElementById('kLiqSub').textContent=`Taxa líquida: ${N2.format(taxa)}%`;
+  document.getElementById('kTrans').textContent=N0.format(qtd);
+  document.getElementById('kTransSub').textContent=`Média: ${N0.format(Math.round(qtd/ms))}/mês`;
+  document.getElementById('kTicket').textContent=BR.format(Math.round(ticket));
+  document.getElementById('kTicketSub').textContent='Bruto ÷ transações';
+}
+
+// ─── MAIN TABLE ───────────────────────────────────────────────────────────────
+function renderTable() {
+  const ms=activeMths();
+  const rows=prodRows();
+  const sorted=[...rows].sort((a,b)=>{
+    if(sortCol==='prod') return sortAsc?(a[0]>b[0]?1:-1):(b[0]>a[0]?1:-1);
+    const va=sortCol==='total'?a[1].total:(a[1][sortCol]||0);
+    const vb=sortCol==='total'?b[1].total:(b[1][sortCol]||0);
+    return sortAsc?va-vb:vb-va;
+  });
+  const totals={total:0};
+  ms.forEach(m=>totals[m]=0);
+  rows.forEach(([,d])=>{ms.forEach(m=>{totals[m]+=(d[m]||0);});totals.total+=d.total;});
+
+  const thc=c=>c===sortCol?'class="sorted col-sel"':(ms.includes(c)&&c===fMonth?'class="col-sel"':'');
+  const tdc=(m,v)=>{
+    const cs=m===fMonth?'col-sel':'';
+    const zc=v===0?'zero':'';
+    return `<td class="${[cs,zc].filter(Boolean).join(' ')}">${v===0?'R$0':BR.format(Math.round(v))}</td>`;
+  };
+
+  let html=`<table><thead><tr>
+    <th onclick="setSort('prod')" class="${sortCol==='prod'?'sorted':''}">Produto</th>
+    ${ms.map(m=>`<th onclick="setSort('${m}')" ${thc(m)}>${m}</th>`).join('')}
+    <th onclick="setSort('total')" ${thc('total')}>Total</th>
+  </tr></thead><tbody>`;
+
+  sorted.forEach(([p,d])=>{
+    const sel=p===fProd;
+    html+=`<tr class="${sel?'row-sel':''}" onclick="selectProd('${p.replace(/'/g,"\\'")}')">
+      <td title="${p}">${sn(p)}</td>
+      ${ms.map(m=>tdc(m,d[m]||0)).join('')}
+      <td class="${fMonth?'':''}tval" style="font-weight:600;color:var(--ac)">${BR.format(Math.round(d.total))}</td>
+    </tr>`;
+  });
+
+  html+=`</tbody><tfoot class="tfoot"><tr>
+    <td>Total</td>
+    ${ms.map(m=>`<td class="${m===fMonth?'col-sel':''}">${BR.format(Math.round(totals[m]))}</td>`).join('')}
+    <td>${BR.format(Math.round(totals.total))}</td>
+  </tr></tfoot></table>`;
+
+  document.getElementById('tableWrap').innerHTML=html;
+  document.getElementById('tableNote').textContent=months().includes('Jun')?'*Junho parcial (dados até 30/06)':'';
+}
+
+window.setSort=(col)=>{if(sortCol===col)sortAsc=!sortAsc;else{sortCol=col;sortAsc=false;}renderTable();};
+window.selectProd=(p)=>{fProd=fProd===p?null:p;syncProdSelect();renderAll();};
+
+// ─── CHARTS ──────────────────────────────────────────────────────────────────
+function dc(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+
+function renderMensal() {
+  dc('mensal');
+  const ms=months();
+  let label='Faturamento mensal';
+  let ds;
+  if(fProd){
+    label=`Evolução mensal · ${sn(fProd).slice(0,40)}`;
+    ds=[{label:'Bruto',data:ms.map(m=>ST[m]?.pb[fProd]||0),backgroundColor:P.bruto,borderRadius:4},
+        {label:'Líquido',data:ms.map(m=>ST[m]?.pl[fProd]||0),backgroundColor:P.liq,borderRadius:4}];
+  } else {
+    ds=[{label:'Bruto',data:ms.map(m=>ST[m]?.bruto||0),backgroundColor:P.bruto,borderRadius:4},
+        {label:'Líquido',data:ms.map(m=>ST[m]?.liq||0),backgroundColor:P.liq,borderRadius:4}];
+  }
+  document.getElementById('mensalTitle').textContent=label;
+  charts.mensal=new Chart(document.getElementById('chartMensal'),{
+    type:'bar',data:{labels:ms,datasets:ds},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:i=>' '+BR.format(i.parsed.y)}}},
+      scales:{
+        y:{beginAtZero:true,grid:{color:P.grid},ticks:{color:P.tick,callback:v=>'R$'+N0.format(v/1000)+'k'},border:{display:false}},
+        x:{grid:{display:false},ticks:{color:P.tick,
+          font:{weight:m=>m.index!==undefined&&months()[m.index]===fMonth?'600':'400'}}}
+      }
+    }
+  });
+}
+
+function renderProd() {
+  dc('prod');
+  const rows=prodRows().slice(0,10).reverse();
+  const bgs=rows.map(([p],i)=>p===fProd?P.bruto:P.series[i%P.series.length]);
+  charts.prod=new Chart(document.getElementById('chartProd'),{
+    type:'bar',
+    data:{labels:rows.map(([p])=>sn(p).length>38?sn(p).slice(0,37)+'…':sn(p)),
+          datasets:[{data:rows.map(([,d])=>d.total),backgroundColor:bgs,borderRadius:3}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:i=>' '+BR.format(i.parsed.x)}}},
+      scales:{
+        x:{beginAtZero:true,grid:{color:P.grid},ticks:{color:P.tick,callback:v=>'R$'+N0.format(v/1000)+'k'},border:{display:false}},
+        y:{grid:{display:false},ticks:{color:P.tick,font:{size:11}}}
+      }
+    }
+  });
+}
+
+function renderPay() {
+  dc('pay');
+  const rows=payTotals();
+  const total=rows.reduce((s,[,v])=>s+v,0);
+  charts.pay=new Chart(document.getElementById('chartPay'),{
+    type:'doughnut',
+    data:{labels:rows.map(([k])=>k),datasets:[{data:rows.map(([,v])=>v),backgroundColor:rows.map((_,i)=>P.pay[i%P.pay.length]),borderWidth:2,borderColor:'#FEFCF9'}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'62%',
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:i=>' '+BR.format(i.parsed)+' ('+(i.parsed/total*100).toFixed(1)+'%)'}}}
+    }
+  });
+  document.getElementById('payLegend').innerHTML=rows.map(([k,v],i)=>
+    `<span class="li"><span class="ld" style="background:${P.pay[i%P.pay.length]}"></span><span style="color:var(--t2)">${k}</span><span style="color:var(--t3);font-size:11px">${(v/total*100).toFixed(1)}%</span></span>`
+  ).join('');
+}
+
+function renderSub() {
+  dc('sub');
+  const ms=months();
+  const cats=['1ª','2ª','3ª+'];
+  const hasData=ms.some(m=>cats.some(c=>(ST[m]?.assin[c]||0)>0));
+  document.getElementById('subCard').style.display=hasData?'':'none';
+  if(!hasData)return;
+  charts.sub=new Chart(document.getElementById('chartSub'),{
+    type:'bar',
+    data:{labels:ms,datasets:cats.map((c,i)=>({
+      label:c+' cobrança',data:ms.map(m=>ST[m]?.assin[c]||0),backgroundColor:P.sub[i],borderRadius:3
+    }))},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:i=>` ${i.dataset.label}: ${N0.format(i.parsed.y)}`}}},
+      scales:{x:{stacked:true,grid:{display:false},ticks:{color:P.tick}},y:{stacked:true,beginAtZero:true,grid:{color:P.grid},ticks:{color:P.tick},border:{display:false}}}
+    }
+  });
+}
+
+// ─── FILTER CONTROLS ─────────────────────────────────────────────────────────
+function renderMonthPills() {
+  const ms=months();
+  document.getElementById('monthPills').innerHTML=
+    `<button class="pill${!fMonth?' active':''}" onclick="setMonth(null)">Todos</button>`+
+    ms.map(m=>`<button class="pill${fMonth===m?' active':''}" onclick="setMonth('${m}')">${m}</button>`).join('');
+}
+
+function renderProdSelect() {
+  const sel=document.getElementById('prodSelect');
+  const prods=allProducts().sort((a,b)=>sn(a).localeCompare(sn(b),'pt'));
+  sel.innerHTML=`<option value="">Todos os produtos</option>`+
+    prods.map(p=>`<option value="${p}"${fProd===p?' selected':''}>${sn(p)}</option>`).join('');
+  sel.classList.toggle('active',!!fProd);
+}
+
+function syncProdSelect(){
+  const sel=document.getElementById('prodSelect');
+  sel.value=fProd||'';
+  sel.classList.toggle('active',!!fProd);
+}
+
+window.setMonth=(m)=>{fMonth=m;renderAll();};
+window.resetFilters=()=>{fMonth=null;fProd=null;renderAll();};
+
+document.getElementById('prodSelect').addEventListener('change',e=>{
+  fProd=e.target.value||null;renderAll();
+});
+
+// ─── CHIPS ────────────────────────────────────────────────────────────────────
+function renderChips() {
+  const ms=months();
+  document.getElementById('chips').innerHTML=ms.map(m=>{
+    const pre=!!PRE[m];
+    return `<span class="chip${pre?' chip-pre':''}">${m} 2026${!pre?` <button class="chip-x" onclick="removeMonth('${m}')">×</button>`:''}</span>`;
+  }).join('');
+  const first=ms[0],last=ms[ms.length-1];
+  document.getElementById('periodBadge').textContent=ms.length?first+' – '+last+' 2026':'—';
+}
+
+window.removeMonth=(m)=>{if(PRE[m])return;delete ST[m];if(fMonth===m)fMonth=null;renderAll();};
+
+// ─── RESET BUTTON VISIBILITY ──────────────────────────────────────────────────
+function updateReset(){document.getElementById('resetBtn').style.display=(fMonth||fProd)?'':'none';}
+
+// ─── RENDER ALL ──────────────────────────────────────────────────────────────
+function renderAll() {
+  updateReset();
+  renderChips();
+  renderMonthPills();
+  renderProdSelect();
+  renderKpis();
+  renderTable();
+  renderMensal();
+  renderProd();
+  renderPay();
+  renderSub();
+}
+
+// ─── CSV UPLOAD ───────────────────────────────────────────────────────────────
+const MN={1:'Jan',2:'Fev',3:'Mar',4:'Abr',5:'Mai',6:'Jun',7:'Jul',8:'Ago',9:'Set',10:'Out',11:'Nov',12:'Dez'};
+function pv(s){if(!s)return 0;return parseFloat(String(s).replace(/\./g,'').replace(',','.'))||0;}
+
+function mergeRows(rows,fname){
+  if(!rows.length)return;
+  const sd=rows.find(r=>r['Data da transação'])?.['Data da transação'];
+  if(!sd)return;
+  const p=sd.split(' ')[0].split('/');
+  const month=MN[parseInt(p[1])];
+  if(!month)return;
+  let qtd=0,bruto=0,liq=0;
+  const pb={},pq={},pl={},pagb={},assin={'1ª':0,'2ª':0,'3ª+':0};
+  rows.forEach(r=>{
+    const b=pv(r['Valor de compra com impostos']),l=pv(r['Faturamento líquido']);
+    const pr=(r['Produto']||'').trim(),pg=r['Método de pagamento']||'Outros';
+    const tipo=r['Tipo de cobrança']||'',nc=parseInt(r['Quantidade de cobranças'])||0;
+    qtd++;bruto+=b;liq+=l;
+    if(pr){pb[pr]=(pb[pr]||0)+b;pq[pr]=(pq[pr]||0)+1;pl[pr]=(pl[pr]||0)+l;}
+    const pk=['Pix','Cartão de Crédito','PIX Automático','Boleto Bancário'].includes(pg)?pg:'Outros';
+    pagb[pk]=(pagb[pk]||0)+b;
+    if(tipo==='Assinatura'){const c=nc===1?'1ª':nc===2?'2ª':'3ª+';assin[c]++;}
+  });
+  ST[month]={f:fname,qtd,bruto:+bruto.toFixed(2),liq:+liq.toFixed(2),pb,pq,pl,pagb,assin};
+  renderAll();
+}
+
+function handleFiles(files){
+  Array.from(files).forEach(file=>{
+    Papa.parse(file,{header:true,delimiter:';',skipEmptyLines:true,
+      complete:res=>mergeRows(res.data,file.name),
+      error:err=>alert('Erro: '+err.message)});
+  });
+}
+
+const zone=document.getElementById('dropZone'),inp=document.getElementById('fileInput');
+zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('drag');});
+zone.addEventListener('dragleave',()=>zone.classList.remove('drag'));
+zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('drag');handleFiles(e.dataTransfer.files);});
+inp.addEventListener('change',e=>handleFiles(e.target.files));
+
+// ─── BOOT ────────────────────────────────────────────────────────────────────
+document.getElementById('genDate').textContent=new Date().toLocaleDateString('pt-BR');
+initST();
+renderAll();
+</script>
+</body>
+</html>
